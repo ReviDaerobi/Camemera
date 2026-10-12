@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    @apply font-body text-ink bg-milk antialiased;
+    background-image: radial-gradient(#FFC9E3 1.6px, transparent 1.6px);
+    background-size: 28px 28px;
+  }
+  h1, h2, h3, h4 { @apply font-display; }
+  :focus-visible { outline: 3px solid #FF7EB6; outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border-[3px] border-ink px-6 py-3 font-display text-lg font-semibold shadow-pop-sm transition active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn:not(:disabled):hover { box-shadow: 5px 5px 0 0 #2B1B5A; transform: translate(-2px, -2px); }
+  .btn:not(:disabled):active { box-shadow: none; transform: translate(3px, 3px); }
+  .chip {
+    @apply rounded-full border-[3px] border-ink bg-white px-4 py-1.5 font-display text-sm font-medium transition;
+  }
+  .chip[aria-pressed='true'] { @apply bg-butter shadow-pop-sm; }
+  .label { @apply mb-1.5 block font-display text-sm font-semibold; }
+  .field {
+    @apply w-full rounded-2xl border-[3px] border-ink bg-white px-4 py-2.5 font-body font-semibold placeholder:text-ink/40;
+  }
+}
