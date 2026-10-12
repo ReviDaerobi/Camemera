@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import memesData from '../../shared/memes.json';
-import { FILTERS, LAYOUTS, STICKER_SETS, THEMES, defaultStickers, hitSticker, renderBooth, renderGuide } from '../lib/composer.js';
+import { Camera, Dices } from 'lucide-react';
+import { FILTERS, LAYOUTS, MEME_TEMPLATES, STICKER_SETS, THEMES, defaultStickers, hitSticker, renderBooth, renderGuide } from '../lib/composer.js';
+import { STICKER_ICONS } from '../lib/stickers.js';
 import { Flower, Sparkle, Star } from './Decor.jsx';
+import StickerIcon from './StickerIcon.jsx';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -24,6 +27,24 @@ function readFile(file) {
   });
 }
 
+const newMeme = (i = 0) => ({
+  kind: 'emoji',
+  emoji: memesData[i].emoji,
+  top: memesData[i].top,
+  bottom: memesData[i].bottom,
+  tpl: 'cat',
+  texts: [...MEME_TEMPLATES[0].defaults],
+  capTop: '',
+  capBottom: '',
+});
+const tplMeme = (id) => ({ ...newMeme(0), kind: 'template', tpl: id, texts: [...MEME_TEMPLATES.find((t) => t.id === id).defaults] });
+
+const MEME_KINDS = [
+  { id: 'emoji', label: 'Emoji + teks' },
+  { id: 'template', label: 'Template gambar' },
+  { id: 'upload', label: 'Foto sendiri' },
+];
+
 const TABS = [
   { id: 'layout', label: 'Layout' },
   { id: 'tema', label: 'Tema' },
@@ -33,7 +54,6 @@ const TABS = [
   { id: 'custom', label: 'Custom' },
 ];
 
-const EMOJI_PALETTE = ['🌸', '⭐', '💖', '🎀', '✨', '🍓', '🍩', '🧋', '🍒', '🍪', '🍭', '🚀', '🌙', '👾', '🪐', '💀', '🗿', '😭', '🤡', '🔥', '😎', '🦋', '🐱', '🌈', '👑', '💌', '🎉', '🫶'];
 
 function saveBlob(blob, name) {
   if (!blob) return;
@@ -56,15 +76,18 @@ export default function Booth() {
 
   const [layout, setLayout] = useState('split');
   const [theme, setTheme] = useState({ ...THEMES[0] });
-  const [memeIdx, setMemeIdx] = useState(0);
-  const [meme, setMeme] = useState({ ...memesData[0] });
-  const [memeUrl, setMemeUrl] = useState(null);
-  const [memeImg, setMemeImg] = useState(null);
+  // Satu entri per kotak meme (layout Aku × Meme pakai 1, Aku × 3 Meme pakai 3)
+  const [memes, setMemes] = useState(() => [newMeme(0), tplMeme('cat'), tplMeme('approve')]);
+  const [memeSlot, setMemeSlot] = useState(0);
+  const [memeUrls, setMemeUrls] = useState([null, null, null]);
+  const [memeImgs, setMemeImgs] = useState([null, null, null]);
   const [caption, setCaption] = useState('Cekrek bareng!');
   const [showDate, setShowDate] = useState(true);
   const [stickerSet, setStickerSet] = useState('cute');
   const [tab, setTab] = useState('layout');
   const [stickers, setStickers] = useState(() => defaultStickers('split', 'cute'));
+  const stickersRef = useRef(stickers);
+  stickersRef.current = stickers;
   const [selectedId, setSelectedId] = useState(null);
   const [frameUrl, setFrameUrl] = useState(null);
   const [frameImg, setFrameImg] = useState(null);
@@ -125,9 +148,9 @@ export default function Booth() {
 
   useEffect(() => {
     let alive = true;
-    loadImage(memeUrl).then((img) => alive && setMemeImg(img));
+    Promise.all(memeUrls.map(loadImage)).then((imgs) => alive && setMemeImgs(imgs));
     return () => { alive = false; };
-  }, [memeUrl]);
+  }, [memeUrls]);
 
   useEffect(() => {
     let alive = true;
@@ -136,7 +159,7 @@ export default function Booth() {
   }, [frameUrl]);
 
   const renderOpts = (sel) => ({
-    layout, theme, photos: photoImgs, meme, memeImg, caption, showDate,
+    layout, theme, photos: photoImgs, memes, memeImgs, caption, showDate,
     stickers, selectedId: sel, frameImg, frameMode, plainPhotos,
   });
 
@@ -152,7 +175,7 @@ export default function Booth() {
       c.getContext('2d').drawImage(off, 0, 0);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layout, theme, photoImgs, meme, memeImg, caption, showDate, stickers, selectedId, frameImg, frameMode, plainPhotos]);
+  }, [layout, theme, photoImgs, memes, memeImgs, caption, showDate, stickers, selectedId, frameImg, frameMode, plainPhotos]);
 
   // Kamera
   const stopCamera = useCallback(() => {
@@ -242,24 +265,36 @@ export default function Booth() {
     });
   };
 
+  // --- Meme ---
+  const memeSlots = layout === 'trio' ? 3 : layout === 'split' ? 1 : 0;
+  const slot = Math.min(memeSlot, Math.max(memeSlots - 1, 0));
+  const cur = memes[slot];
+  const updateMeme = (patch) => setMemes((prev) => prev.map((m, i) => (i === slot ? { ...m, ...patch } : m)));
+  const setUrl = (url) => setMemeUrls((prev) => prev.map((u, i) => (i === slot ? url : u)));
+
   const onUploadMeme = async (e) => {
     const f = e.target.files?.[0];
     e.target.value = '';
     if (!f || !f.type.startsWith('image/')) return;
-    setMemeUrl(await readFile(f));
+    const url = await readFile(f);
+    if (!url) return;
+    setUrl(url);
+    updateMeme({ kind: 'upload' });
   };
 
-  const pickMeme = (i) => {
-    setMemeIdx(i);
-    setMeme({ ...memesData[i] });
-    setMemeUrl(null);
+  const pickEmojiMeme = (i) => {
+    const m = memesData[i];
+    updateMeme({ kind: 'emoji', emoji: m.emoji, top: m.top, bottom: m.bottom });
   };
 
   const randomMeme = () => {
     let i = Math.floor(Math.random() * memesData.length);
-    if (i === memeIdx && memesData.length > 1) i = (i + 1) % memesData.length;
-    pickMeme(i);
+    if (memesData[i].emoji === cur.emoji && memesData.length > 1) i = (i + 1) % memesData.length;
+    pickEmojiMeme(i);
   };
+
+  const pickTemplate = (id) => updateMeme({ kind: 'template', tpl: id, texts: [...MEME_TEMPLATES.find((t) => t.id === id).defaults] });
+  const setTemplateText = (idx, val) => updateMeme({ texts: cur.texts.map((t, i) => (i === idx ? val : t)) });
 
   const download = async () => {
     const c = document.createElement('canvas');
@@ -281,11 +316,11 @@ export default function Booth() {
   };
 
   // Stiker: tambah, ubah, geser
-  const addSticker = (emoji) => {
+  const addSticker = (icon) => {
     const L = LAYOUTS[layout];
     const st = {
       id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      emoji, x: L.W / 2, y: L.H / 2, size: 120, rot: 0,
+      icon, x: L.W / 2, y: L.H / 2, size: 130, rot: 0,
     };
     setStickers((prev) => [...prev, st]);
     setSelectedId(st.id);
@@ -303,34 +338,83 @@ export default function Booth() {
     setSelectedId(copy.id);
   };
 
-  const toCanvasPoint = (e) => {
+  // --- Geser stiker ---
+  // Mouse: pointer events. Sentuhan (HP): touch events non-passive, supaya halaman hanya
+  // berhenti scroll kalau jari menyentuh stiker. Di luar stiker, layar tetap bisa di-scroll.
+  const toCanvasPoint = (clientX, clientY) => {
     const c = previewRef.current;
     const r = c.getBoundingClientRect();
-    return { x: ((e.clientX - r.left) * c.width) / r.width, y: ((e.clientY - r.top) * c.height) / r.height };
+    return { x: ((clientX - r.left) * c.width) / r.width, y: ((clientY - r.top) * c.height) / r.height };
   };
-  const onCanvasDown = (e) => {
-    const p = toCanvasPoint(e);
-    const hit = hitSticker(stickers, p.x, p.y);
+  const startDrag = (clientX, clientY, touchPx) => {
+    const c = previewRef.current;
+    const r = c.getBoundingClientRect();
+    const p = toCanvasPoint(clientX, clientY);
+    // area sentuh minimal (px layar) diubah ke piksel canvas, biar stiker kecil tetap mudah kena
+    const hit = hitSticker(stickersRef.current, p.x, p.y, touchPx * (c.width / r.width));
     if (!hit) {
       setSelectedId(null);
-      return;
+      return false;
     }
     setSelectedId(hit.id);
     setStickers((prev) => [...prev.filter((st) => st.id !== hit.id), hit]); // naik ke paling atas
     dragRef.current = { id: hit.id, dx: hit.x - p.x, dy: hit.y - p.y };
-    e.currentTarget.setPointerCapture(e.pointerId);
-    e.preventDefault();
+    return true;
   };
-  const onCanvasMove = (e) => {
+  const moveDrag = (clientX, clientY) => {
     const d = dragRef.current;
     if (!d) return;
     const c = previewRef.current;
-    const p = toCanvasPoint(e);
+    const p = toCanvasPoint(clientX, clientY);
     setStickers((prev) => prev.map((st) => (st.id === d.id
       ? { ...st, x: Math.min(c.width, Math.max(0, p.x + d.dx)), y: Math.min(c.height, Math.max(0, p.y + d.dy)) }
       : st)));
   };
   const endDrag = () => { dragRef.current = null; };
+
+  const onCanvasDown = (e) => {
+    if (e.pointerType === 'touch') return;
+    if (startDrag(e.clientX, e.clientY, 14)) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    }
+  };
+  const onCanvasMove = (e) => {
+    if (e.pointerType !== 'touch') moveDrag(e.clientX, e.clientY);
+  };
+  const onCanvasUp = (e) => {
+    if (e.pointerType !== 'touch') endDrag();
+  };
+
+  useEffect(() => {
+    const c = previewRef.current;
+    if (!c) return undefined;
+    const onStart = (e) => {
+      if (e.touches.length !== 1) {
+        endDrag();
+        return;
+      }
+      const t = e.touches[0];
+      if (startDrag(t.clientX, t.clientY, 30)) e.preventDefault();
+    };
+    const onMove = (e) => {
+      if (!dragRef.current) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      moveDrag(t.clientX, t.clientY);
+    };
+    c.addEventListener('touchstart', onStart, { passive: false });
+    c.addEventListener('touchmove', onMove, { passive: false });
+    c.addEventListener('touchend', endDrag);
+    c.addEventListener('touchcancel', endDrag);
+    return () => {
+      c.removeEventListener('touchstart', onStart);
+      c.removeEventListener('touchmove', onMove);
+      c.removeEventListener('touchend', endDrag);
+      c.removeEventListener('touchcancel', endDrag);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setColor = (key) => (e) => setTheme((t) => ({ ...t, [key]: e.target.value, id: 'custom' }));
 
@@ -358,7 +442,7 @@ export default function Booth() {
               />
               {!camOn && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-peri to-bubble p-6 text-center">
-                  <span className="text-6xl animate-float" aria-hidden="true">📷</span>
+                  <Camera className="h-16 w-16 animate-float text-white" strokeWidth={2.2} aria-hidden="true" />
                   <p className="font-display text-xl font-semibold text-white">Kamera belum menyala</p>
                 </div>
               )}
@@ -444,9 +528,8 @@ export default function Booth() {
                 ref={previewRef}
                 onPointerDown={onCanvasDown}
                 onPointerMove={onCanvasMove}
-                onPointerUp={endDrag}
-                onPointerCancel={endDrag}
-                style={{ touchAction: tab === 'stiker' ? 'none' : 'auto' }}
+                onPointerUp={onCanvasUp}
+                onPointerCancel={onCanvasUp}
                 className="mx-auto block h-auto max-h-[70vh] w-auto max-w-full cursor-grab active:cursor-grabbing"
                 aria-label="Preview hasil photobooth. Stiker bisa digeser."
               />
@@ -496,47 +579,122 @@ export default function Booth() {
 
               {tab === 'meme' && (
                 <div>
-                  {layout !== 'split' && (
-                    <p className="mb-3 rounded-2xl border-[3px] border-ink bg-butter px-4 py-2 text-sm font-bold">
-                      Meme hanya tampil di layout &quot;Aku × Meme&quot;.{' '}
-                      <button className="underline" onClick={() => setLayout('split')}>Pindah ke layout itu</button>
+                  {memeSlots === 0 ? (
+                    <p className="rounded-2xl border-[3px] border-ink bg-butter px-4 py-3 text-sm font-bold">
+                      Meme tampil di layout &quot;Aku × Meme&quot; dan &quot;Aku × 3 Meme&quot;.
+                      <span className="mt-2 flex flex-wrap gap-2">
+                        <button className="chip" onClick={() => setLayout('split')}>Pakai Aku × Meme</button>
+                        <button className="chip" onClick={() => setLayout('trio')}>Pakai Aku × 3 Meme</button>
+                      </span>
                     </p>
+                  ) : (
+                    <>
+                      {memeSlots > 1 && (
+                        <div className="mb-4">
+                          <span className="label">Kotak meme yang diedit</span>
+                          <div className="flex gap-2">
+                            {memes.slice(0, memeSlots).map((_, i) => (
+                              <button key={i} className="chip" aria-pressed={slot === i} onClick={() => setMemeSlot(i)}>Meme {i + 1}</button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mb-4">
+                        <span className="label">Jenis meme</span>
+                        <div className="flex flex-wrap gap-2">
+                          {MEME_KINDS.map((k) => (
+                            <button key={k.id} className="chip" aria-pressed={cur.kind === k.id} onClick={() => updateMeme({ kind: k.id })}>{k.label}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {cur.kind === 'emoji' && (
+                        <div>
+                          <div className="flex flex-wrap gap-2">
+                            {memesData.map((m, i) => (
+                              <button key={m.id} className="chip" aria-pressed={cur.emoji === m.emoji && cur.top === m.top} onClick={() => pickEmojiMeme(i)} aria-label={`Meme ${m.top}`}>
+                                <span className="text-lg">{m.emoji}</span>
+                              </button>
+                            ))}
+                            <button className="chip inline-flex items-center gap-1.5 bg-mint" onClick={randomMeme}><Dices className="h-4 w-4" aria-hidden="true" /> Acak meme</button>
+                          </div>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <label>
+                              <span className="label">Teks atas</span>
+                              <input className="field" value={cur.top} maxLength={40} onChange={(e) => updateMeme({ top: e.target.value })} />
+                            </label>
+                            <label>
+                              <span className="label">Teks bawah</span>
+                              <input className="field" value={cur.bottom} maxLength={40} onChange={(e) => updateMeme({ bottom: e.target.value })} />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      {cur.kind === 'template' && (
+                        <div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {MEME_TEMPLATES.map((t) => (
+                              <button
+                                key={t.id}
+                                aria-pressed={cur.tpl === t.id}
+                                onClick={() => pickTemplate(t.id)}
+                                className={`rounded-2xl border-[3px] border-ink px-3 py-2.5 text-left font-display text-sm font-semibold transition ${cur.tpl === t.id ? 'bg-butter shadow-pop-sm' : 'bg-white hover:bg-milk'}`}
+                              >
+                                {t.name}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            {MEME_TEMPLATES.find((t) => t.id === cur.tpl).fields.map((label, i) => (
+                              <label key={`${cur.tpl}-${i}`}>
+                                <span className="label">{label}</span>
+                                <input className="field" value={cur.texts[i] || ''} maxLength={60} onChange={(e) => setTemplateText(i, e.target.value)} />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {cur.kind === 'upload' && (
+                        <div>
+                          <p className="mb-3 text-sm font-bold text-ink/75">
+                            Pilih foto atau gambar meme dari galeri. Gambar dipotong otomatis supaya memenuhi kotak, dan teks di bawah ini opsional.
+                          </p>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <button className="chip bg-sky" onClick={() => memeFileRef.current?.click()}>{memeUrls[slot] ? 'Ganti foto meme' : 'Pilih foto meme'}</button>
+                            {memeUrls[slot] && <button className="chip" onClick={() => { setUrl(null); updateMeme({ kind: 'emoji' }); }}>Hapus foto</button>}
+                          </div>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <label>
+                              <span className="label">Teks atas (opsional)</span>
+                              <input className="field" value={cur.capTop} maxLength={40} onChange={(e) => updateMeme({ capTop: e.target.value })} />
+                            </label>
+                            <label>
+                              <span className="label">Teks bawah (opsional)</span>
+                              <input className="field" value={cur.capBottom} maxLength={40} onChange={(e) => updateMeme({ capBottom: e.target.value })} />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                      <input ref={memeFileRef} type="file" accept="image/*" hidden onChange={onUploadMeme} />
+                    </>
                   )}
-                  <div className="flex flex-wrap gap-2">
-                    {memesData.map((m, i) => (
-                      <button key={m.id} className="chip" aria-pressed={!memeUrl && memeIdx === i} onClick={() => pickMeme(i)} aria-label={`Meme ${m.top}`}>
-                        <span className="text-lg">{m.emoji}</span>
-                      </button>
-                    ))}
-                    <button className="chip bg-mint" onClick={randomMeme}>🎲 Acak meme</button>
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <label>
-                      <span className="label">Teks atas</span>
-                      <input className="field" value={meme.top} maxLength={40} disabled={!!memeUrl} onChange={(e) => setMeme({ ...meme, top: e.target.value })} />
-                    </label>
-                    <label>
-                      <span className="label">Teks bawah</span>
-                      <input className="field" value={meme.bottom} maxLength={40} disabled={!!memeUrl} onChange={(e) => setMeme({ ...meme, bottom: e.target.value })} />
-                    </label>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <button className="chip bg-sky" onClick={() => memeFileRef.current?.click()}>Pakai gambar meme sendiri</button>
-                    {memeUrl && <button className="chip" onClick={() => setMemeUrl(null)}>Kembali ke meme bawaan</button>}
-                    <input ref={memeFileRef} type="file" accept="image/*" hidden onChange={onUploadMeme} />
-                  </div>
                 </div>
               )}
 
               {tab === 'stiker' && (
                 <div>
                   <p className="mb-3 text-sm font-bold text-ink/75">
-                    Geser stiker langsung di preview. Klik stiker untuk mengatur ukuran dan putarannya, atau tekan Delete untuk menghapus.
+                    Geser stiker langsung di preview (di HP, sentuh dan geser). Pilih stiker untuk mengatur ukuran dan putarannya, atau tekan Delete untuk menghapus.
                   </p>
                   <span className="label">Tambah stiker</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {EMOJI_PALETTE.map((em) => (
-                      <button key={em} className="grid h-11 w-11 place-items-center rounded-xl border-[3px] border-ink bg-white text-2xl transition hover:-translate-y-0.5 hover:bg-butter" onClick={() => addSticker(em)} aria-label={`Tambah stiker ${em}`}>{em}</button>
+                    {Object.entries(STICKER_ICONS).map(([id, ic]) => (
+                      <button key={id} className="grid h-12 w-12 place-items-center rounded-xl border-[3px] border-ink bg-white transition hover:-translate-y-0.5 hover:bg-butter" onClick={() => addSticker(id)} aria-label={`Tambah stiker ${ic.name}`}>
+                        <StickerIcon id={id} className="h-8 w-8" />
+                      </button>
                     ))}
                   </div>
 
@@ -634,7 +792,7 @@ export default function Booth() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <button className="btn bg-mint" onClick={download}>Download PNG</button>
-              {filled < shots && <span className="text-sm font-bold text-ink/65">Slot foto yang kosong akan tampil sebagai kotak 📸.</span>}
+              {filled < shots && <span className="text-sm font-bold text-ink/65">Slot foto yang kosong akan tampil sebagai kotak kamera.</span>}
             </div>
           </div>
         </div>
