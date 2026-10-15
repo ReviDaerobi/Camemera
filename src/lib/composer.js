@@ -1,24 +1,19 @@
 // Mesin penggabung foto + template ke satu gambar (Canvas). Semua jalan di browser.
 import { STICKER_SETS, loadIcon } from './stickers.js';
+import { TEMPLATE_PRESETS } from '../templates.config.js';
 
 export { STICKER_SETS };
 
 export const LAYOUTS = {
   split: { id: 'split', name: 'Aku × Meme', desc: 'Foto kamu di kiri, meme di kanan', W: 1600, H: 900, shots: 1 },
-  trio: { id: 'trio', name: 'Aku × 3 Meme', desc: 'Foto di kiri, tiga meme di kanan', W: 1700, H: 1040, shots: 1 },
+  trio: { id: 'trio', name: 'Aku × 3 Meme', desc: '3 foto di kiri, 3 meme di kanan (berpasangan)', W: 1480, H: 1760, shots: 3 },
   strip: { id: 'strip', name: 'Photo strip', desc: '4 pose berurutan ke bawah', W: 600, H: 1800, shots: 4 },
   polaroid: { id: 'polaroid', name: 'Polaroid', desc: '1 foto dengan tulisan tangan', W: 900, H: 1100, shots: 1 },
   grid: { id: 'grid', name: 'Kotak 2×2', desc: '4 pose dalam satu kartu', W: 1160, H: 1400, shots: 4 },
 };
 
-export const THEMES = [
-  { id: 'bubblegum', name: 'Permen karet', bg1: '#FFB3D6', bg2: '#C9B8FF', accent: '#FF7EB6', ink: '#2B1B5A', pattern: 'dots' },
-  { id: 'matcha', name: 'Matcha', bg1: '#B9F3D8', bg2: '#FFF3A8', accent: '#6EE7C0', ink: '#1F3B2E', pattern: 'stripes' },
-  { id: 'sunset', name: 'Senja', bg1: '#FFD08A', bg2: '#FF8FB1', accent: '#FF9A5C', ink: '#4A1D3A', pattern: 'dots' },
-  { id: 'grape', name: 'Anggur', bg1: '#B7A6FF', bg2: '#7FD6FF', accent: '#9C8CFF', ink: '#241552', pattern: 'stripes' },
-  { id: 'ocean', name: 'Laut', bg1: '#A5E3FF', bg2: '#B9F3D8', accent: '#6CC8FF', ink: '#10345A', pattern: 'dots' },
-  { id: 'lemon', name: 'Lemon', bg1: '#FFF2A0', bg2: '#FFC6A5', accent: '#FFD84D', ink: '#4A3510', pattern: 'none' },
-];
+// Daftar template ada di src/templates.config.js
+export const THEMES = TEMPLATE_PRESETS;
 
 export const FILTERS = {
   normal: { name: 'Normal', css: 'none' },
@@ -37,17 +32,15 @@ function getSlots(id) {
         caption: { x: 800, y: 790 },
         stickers: [[50, 50, 100, -15], [780, 60, 84, 10], [1555, 70, 100, 15], [55, 700, 88, -10], [1545, 705, 100, 12], [800, 640, 80, -6]],
       };
-    case 'trio':
+    case 'trio': {
+      const rows = [0, 1, 2].map((i) => 60 + i * 510);
       return {
-        photos: [{ x: 60, y: 60, w: 640, h: 800 }],
-        memes: [
-          { x: 760, y: 60, w: 880, h: 380 },
-          { x: 760, y: 480, w: 430, h: 380 },
-          { x: 1210, y: 480, w: 430, h: 380 },
-        ],
-        caption: { x: 850, y: 950 },
-        stickers: [[50, 50, 100, -15], [730, 60, 84, 10], [1650, 70, 100, 15], [55, 880, 88, -10], [1645, 885, 100, 12], [1650, 470, 72, 8]],
+        photos: rows.map((y) => ({ x: 60, y, w: 640, h: 480 })),
+        memes: rows.map((y) => ({ x: 780, y, w: 640, h: 480 })),
+        caption: { x: 740, y: 1665 },
+        stickers: [[46, 46, 100, -15], [740, 40, 84, 10], [1434, 50, 100, 15], [740, 555, 76, -8], [740, 1065, 76, 6], [48, 1550, 90, -10], [1436, 1552, 100, 12]],
       };
+    }
     case 'strip':
       return {
         photos: [0, 1, 2, 3].map((i) => ({ x: 40, y: 50 + i * 394, w: 520, h: 370 })),
@@ -574,29 +567,31 @@ export async function renderBooth(canvas, opts) {
   if (opts.frameImg && opts.frameMode !== 'under') ctx.drawImage(opts.frameImg, 0, 0, L.W, L.H);
 
   if (slots.memes) {
-    // lencana "×" di antara foto dan meme
-    const ph = slots.photos[0];
-    const bx = (ph.x + ph.w + slots.memes[0].x) / 2;
-    const by = ph.y + ph.h / 2;
-    const br = Math.min(52, (slots.memes[0].x - ph.x - ph.w) * 0.7);
-    ctx.save();
-    ctx.fillStyle = t.ink;
-    ctx.beginPath();
-    ctx.arc(bx + 5, by + 5, br, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFD84D';
-    ctx.strokeStyle = t.ink;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(bx, by, br, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = t.ink;
-    ctx.font = `700 ${Math.round(br * 1.35)}px Fredoka, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('×', bx, by + br * 0.08);
-    ctx.restore();
+    // lencana "×" di antara tiap pasangan foto dan meme
+    slots.memes.forEach((m, i) => {
+      const ph = slots.photos[Math.min(i, slots.photos.length - 1)];
+      const bx = (ph.x + ph.w + m.x) / 2;
+      const by = ph.y + ph.h / 2;
+      const br = Math.min(52, (m.x - ph.x - ph.w) * 0.7);
+      ctx.save();
+      ctx.fillStyle = t.ink;
+      ctx.beginPath();
+      ctx.arc(bx + 5, by + 5, br, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFD84D';
+      ctx.strokeStyle = t.ink;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = t.ink;
+      ctx.font = `700 ${Math.round(br * 1.35)}px Fredoka, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('×', bx, by + br * 0.08);
+      ctx.restore();
+    });
   }
 
   // Stiker

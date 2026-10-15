@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import memesData from '../../shared/memes.json';
 import { Camera, Dices } from 'lucide-react';
 import { FILTERS, LAYOUTS, MEME_TEMPLATES, STICKER_SETS, THEMES, defaultStickers, hitSticker, renderBooth, renderGuide } from '../lib/composer.js';
+import { MEME_IMAGES } from '../lib/memeImages.js';
 import { STICKER_ICONS } from '../lib/stickers.js';
 import { Flower, Sparkle, Star } from './Decor.jsx';
 import StickerIcon from './StickerIcon.jsx';
@@ -42,8 +43,18 @@ const tplMeme = (id) => ({ ...newMeme(0), kind: 'template', tpl: id, texts: [...
 const MEME_KINDS = [
   { id: 'emoji', label: 'Emoji + teks' },
   { id: 'template', label: 'Template gambar' },
-  { id: 'upload', label: 'Foto sendiri' },
+  { id: 'upload', label: 'Gambar meme' },
 ];
+
+const STORE_KEY = 'cekrek.templates.v1';
+function loadSavedTemplates() {
+  try {
+    const v = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
 
 const TABS = [
   { id: 'layout', label: 'Layout' },
@@ -85,6 +96,8 @@ export default function Booth() {
   const [showDate, setShowDate] = useState(true);
   const [stickerSet, setStickerSet] = useState('cute');
   const [tab, setTab] = useState('layout');
+  const [saved, setSaved] = useState(loadSavedTemplates);
+  const [tplName, setTplName] = useState('');
   const [stickers, setStickers] = useState(() => defaultStickers('split', 'cute'));
   const stickersRef = useRef(stickers);
   stickersRef.current = stickers;
@@ -416,6 +429,58 @@ export default function Booth() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- Template (warna + tulisan) ---
+  const applyPreset = (t) => {
+    setTheme({ id: t.id, name: t.name, bg1: t.bg1, bg2: t.bg2, accent: t.accent, ink: t.ink, pattern: t.pattern });
+    if (t.caption !== undefined) setCaption(t.caption);
+    if (t.stickerSet) setStickerSet(t.stickerSet);
+    if (t.showDate !== undefined) setShowDate(t.showDate);
+  };
+  const persistSaved = (list) => {
+    setSaved(list);
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(list));
+    } catch {
+      /* penyimpanan browser tidak tersedia */
+    }
+  };
+  const saveCurrentTemplate = () => {
+    const item = {
+      id: `mine-${Date.now()}`,
+      name: tplName.trim() || `Template ${saved.length + 1}`,
+      bg1: theme.bg1, bg2: theme.bg2, accent: theme.accent, ink: theme.ink, pattern: theme.pattern,
+      caption, stickerSet, showDate,
+    };
+    persistSaved([...saved, item]);
+    setTheme((t) => ({ ...t, id: item.id, name: item.name }));
+    setTplName('');
+  };
+  const templateCard = (t, removable) => (
+    <div key={t.id} className="relative">
+      <button
+        aria-pressed={theme.id === t.id}
+        onClick={() => applyPreset(t)}
+        className={`block w-full overflow-hidden rounded-2xl border-[3px] border-ink text-left transition ${theme.id === t.id ? 'shadow-pop-sm' : ''}`}
+      >
+        <span className="block h-14" style={{ background: `linear-gradient(120deg, ${t.bg1}, ${t.bg2})` }} />
+        <span className="block bg-white px-3 py-2">
+          <span className="flex items-center gap-2 font-display text-sm font-semibold">
+            <span className="h-4 w-4 shrink-0 rounded-full border-2 border-ink" style={{ background: t.accent }} />
+            {t.name}
+          </span>
+          {t.caption ? <span className="mt-0.5 block truncate text-xs font-bold text-ink/60">{t.caption}</span> : null}
+        </span>
+      </button>
+      {removable && (
+        <button
+          aria-label={`Hapus template ${t.name}`}
+          onClick={() => persistSaved(saved.filter((x) => x.id !== t.id))}
+          className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full border-2 border-ink bg-white text-xs font-bold"
+        >×</button>
+      )}
+    </div>
+  );
+
   const setColor = (key) => (e) => setTheme((t) => ({ ...t, [key]: e.target.value, id: 'custom' }));
 
   return (
@@ -559,21 +624,29 @@ export default function Booth() {
               )}
 
               {tab === 'tema' && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {THEMES.map((t) => (
-                    <button
-                      key={t.id}
-                      aria-pressed={theme.id === t.id}
-                      onClick={() => setTheme({ ...t })}
-                      className={`overflow-hidden rounded-2xl border-[3px] border-ink text-left transition ${theme.id === t.id ? 'shadow-pop-sm' : ''}`}
-                    >
-                      <span className="block h-14" style={{ background: `linear-gradient(120deg, ${t.bg1}, ${t.bg2})` }} />
-                      <span className="flex items-center gap-2 bg-white px-3 py-2 font-display text-sm font-semibold">
-                        <span className="h-4 w-4 rounded-full border-2 border-ink" style={{ background: t.accent }} />
-                        {t.name}
-                      </span>
-                    </button>
-                  ))}
+                <div>
+                  <label className="mb-4 block">
+                    <span className="label">Tulisan di bawah template</span>
+                    <input className="field" value={caption} maxLength={40} onChange={(e) => setCaption(e.target.value)} placeholder="Contoh: Reuni kelas 2026" />
+                  </label>
+
+                  <span className="label">Template siap pakai (warna + tulisan)</span>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{THEMES.map((t) => templateCard(t, false))}</div>
+
+                  <span className="label mt-5">Template saya</span>
+                  {saved.length ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{saved.map((t) => templateCard(t, true))}</div>
+                  ) : (
+                    <p className="text-sm font-bold text-ink/65">Belum ada. Atur warna di tab Custom, isi tulisan di atas, lalu simpan di sini.</p>
+                  )}
+                  <div className="mt-4 flex flex-wrap items-end gap-2">
+                    <label className="min-w-[10rem] grow">
+                      <span className="label">Nama template baru</span>
+                      <input className="field" value={tplName} maxLength={24} onChange={(e) => setTplName(e.target.value)} placeholder="Contoh: Kelas 4A" />
+                    </label>
+                    <button className="chip bg-mint" onClick={saveCurrentTemplate}>Simpan pengaturan sekarang</button>
+                  </div>
+                  <p className="mt-2 text-xs font-bold text-ink/55">Template saya tersimpan di browser ini. Untuk template permanen, tambahkan di src/templates.config.js.</p>
                 </div>
               )}
 
@@ -659,13 +732,32 @@ export default function Booth() {
 
                       {cur.kind === 'upload' && (
                         <div>
-                          <p className="mb-3 text-sm font-bold text-ink/75">
-                            Pilih foto atau gambar meme dari galeri. Gambar dipotong otomatis supaya memenuhi kotak, dan teks di bawah ini opsional.
-                          </p>
-                          <div className="flex flex-wrap items-center gap-3">
-                            <button className="chip bg-sky" onClick={() => memeFileRef.current?.click()}>{memeUrls[slot] ? 'Ganti foto meme' : 'Pilih foto meme'}</button>
-                            {memeUrls[slot] && <button className="chip" onClick={() => { setUrl(null); updateMeme({ kind: 'emoji' }); }}>Hapus foto</button>}
+                          <span className="label">Galeri meme</span>
+                          {MEME_IMAGES.length ? (
+                            <div className="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
+                              {MEME_IMAGES.map((img) => (
+                                <button
+                                  key={img.id}
+                                  aria-pressed={memeUrls[slot] === img.url}
+                                  aria-label={img.name}
+                                  onClick={() => { setUrl(img.url); updateMeme({ kind: 'upload' }); }}
+                                  className={`overflow-hidden rounded-xl border-[3px] border-ink bg-white transition ${memeUrls[slot] === img.url ? 'shadow-pop-sm ring-2 ring-bubble' : 'hover:-translate-y-0.5'}`}
+                                >
+                                  <img src={img.url} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                                  <span className="block truncate px-1.5 py-1 text-xs font-bold">{img.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm font-bold text-ink/65">Belum ada gambar. Taruh file di folder src/assets/memes/ lalu refresh.</p>
+                          )}
+
+                          <div className="mt-4 flex flex-wrap items-center gap-3">
+                            <button className="chip bg-sky" onClick={() => memeFileRef.current?.click()}>Upload dari perangkat</button>
+                            {memeUrls[slot] && <button className="chip" onClick={() => { setUrl(null); updateMeme({ kind: 'emoji' }); }}>Lepas gambar</button>}
                           </div>
+                          <p className="mt-2 text-xs font-bold text-ink/55">Gambar dipotong otomatis supaya memenuhi kotak meme.</p>
+
                           <div className="mt-4 grid gap-3 sm:grid-cols-2">
                             <label>
                               <span className="label">Teks atas (opsional)</span>

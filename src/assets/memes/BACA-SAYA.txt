@@ -1,0 +1,4 @@
+Taruh gambar meme kamu di folder ini (png, jpg, jpeg, webp, gif, avif).
+Gambar otomatis muncul di tab Meme > Gambar meme > "Galeri meme".
+Nama file jadi nama gambar, contoh: "dosen-kaget.jpg" tampil sebagai "dosen kaget".
+Hapus file contoh-*.png kalau tidak dipakai. Kalau gambar baru belum muncul, refresh halaman.

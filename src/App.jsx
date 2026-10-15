@@ -28,14 +28,14 @@ function Navbar() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-8">
         <a href="#top" className="flex items-center gap-2 font-display text-2xl font-bold">
           <Logo />
-          Cekrek! Booth
+          Cekrek Booth
         </a>
         <div className="hidden items-center gap-7 font-display text-lg font-medium md:flex">
           <a className="hover:text-bubble" href="#cara">Cara kerja</a>
           <a className="hover:text-bubble" href="#template">Template</a>
-          <a className="hover:text-bubble" href="#kenapa">Kenapa Cekrek!</a>
+          <a className="hover:text-bubble" href="#kenapa">Kenapa Cekrek</a>
         </div>
-        <a href="#booth" className="btn bg-butter px-5 py-2 text-base">Mulai Cekrek!</a>
+        <a href="#booth" className="btn bg-butter px-5 py-2 text-base">Mulai cekrek</a>
       </nav>
     </header>
   );
@@ -59,7 +59,7 @@ function HeroCard() {
             <p className="absolute inset-x-0 bottom-2 px-2 text-center font-meme text-[1.05rem] leading-tight text-white [-webkit-text-stroke:5px_#2B1B5A] [paint-order:stroke_fill]">MAU MAKAN APA</p>
           </div>
         </div>
-        <p className="mt-4 text-center font-display text-2xl font-bold">Cekrek! bareng!</p>
+        <p className="mt-4 text-center font-display text-2xl font-bold">Cekrek bareng!</p>
         <span className="absolute left-1/2 top-[44%] grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-ink bg-butter font-display text-2xl font-bold shadow-pop-sm">×</span>
       </div>
 
@@ -84,10 +84,10 @@ function Hero() {
           </h1>
           <Squiggle className="mt-5 h-5 w-40" />
           <p className="mt-6 max-w-xl text-xl font-semibold leading-relaxed text-ink/80">
-            Cekrek! lewat browser, pilih template lucu atau rancang sendiri, lalu simpan hasilnya. Gratis dan tanpa daftar akun.
+            Cekrek lewat browser, pilih template lucu atau rancang sendiri, lalu simpan hasilnya. Gratis dan tanpa daftar akun.
           </p>
           <div className="mt-9 flex flex-wrap gap-4">
-            <a href="#booth" className="btn bg-bubble text-white">Mulai Cekrek!</a>
+            <a href="#booth" className="btn bg-bubble text-white">Mulai cekrek</a>
             <a href="#template" className="btn bg-white">Lihat template</a>
           </div>
         </div>
@@ -118,7 +118,7 @@ function Marquee() {
 function HowItWorks() {
   const steps = [
     { n: 1, title: 'Pilih template', text: 'Foto kiri meme kanan, photo strip, polaroid, atau kotak 2×2. Warna dan stiker bisa diganti.', bg: 'bg-butter', rot: '-rotate-2', radius: 'rounded-[2.5rem]', deco: <Star className="h-14 w-14" color="#FF7EB6" /> },
-    { n: 2, title: 'Cekrek!', text: 'Nyalakan kamera, atur hitung mundur, lalu tersenyum. Tidak ada kamera? Upload foto saja.', bg: 'bg-sky', rot: 'rotate-1', radius: 'rounded-[2rem_3rem_2rem_3rem]', deco: <Heart className="h-14 w-14" /> },
+    { n: 2, title: 'Cekrek', text: 'Nyalakan kamera, atur hitung mundur, lalu tersenyum. Tidak ada kamera? Upload foto saja.', bg: 'bg-sky', rot: 'rotate-1', radius: 'rounded-[2rem_3rem_2rem_3rem]', deco: <Heart className="h-14 w-14" /> },
     { n: 3, title: 'Download', text: 'Hasil jadi berupa PNG beresolusi tinggi, siap dikirim ke grup atau dicetak.', bg: 'bg-mint', rot: '-rotate-1', radius: 'rounded-[3rem_2rem_3rem_2rem]', deco: <Sparkle className="h-14 w-14" color="#9C8CFF" /> },
   ];
   return (
@@ -257,9 +257,8 @@ function Footer() {
       <Sparkle className="absolute right-10 top-8 h-10 w-10 animate-wiggle" />
       <Heart className="absolute bottom-6 left-[12%] h-8 w-8 animate-float" />
       <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="font-display text-3xl font-bold">Cekrek! Booth</p>
+        <p className="font-display text-3xl font-bold">Cekrek Booth</p>
         <p className="max-w-md font-semibold text-white/80">Photobooth online gratis. Foto diproses di browsermu dan tidak disimpan di server.</p>
-        <p className="max-w-md font-semibold text-white/80">BY : Revi Daerobi</p>
         <a href="#top" className="btn bg-butter text-ink">Kembali ke atas</a>
       </div>
     </footer>

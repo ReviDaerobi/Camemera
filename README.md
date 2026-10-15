@@ -32,6 +32,8 @@ shared/memes.json     Daftar meme bawaan (dipakai frontend dan API), tambah send
 server.js             Server lokal untuk development
 src/lib/composer.js   Mesin Canvas: layout, tema, filter, penggambaran stiker
 src/lib/stickers.js   Ikon stiker SVG (tanpa emoji) dan set stiker
+src/templates.config.js Template siap pakai (warna + tulisan)
+src/assets/memes/     Gambar meme milikmu (otomatis masuk galeri)
 src/components/       Booth (kamera + editor), Decor (elemen grafis SVG)
 src/App.jsx           Landing page
 ```
@@ -45,6 +47,10 @@ Timpa file `public/logo.png` dengan logomu (PNG transparan, sebaiknya persegi at
 Tiap kotak meme punya tiga jenis: **Emoji + teks**, **Template gambar** (kucing kaget, dua tombol, tolak & terima, breaking news; semua digambar sendiri lewat kode, bisa ditambah di `MEME_TEMPLATES` dan `drawTemplate` pada `src/lib/composer.js`), dan **Foto sendiri** (upload + teks atas/bawah opsional).
 Layout **Aku × 3 Meme** punya tiga kotak meme yang bisa diatur satu per satu.
 
+## Gambar meme sendiri
+
+Taruh file gambar (png, jpg, jpeg, webp, gif, avif) di `src/assets/memes/`. Semuanya otomatis muncul di tab Meme > Gambar meme > Galeri meme, tanpa mengubah kode. Nama file jadi nama gambar. File `contoh-*.png` boleh dihapus.
+
 ## Stiker dan frame
 
 - **Stiker**: buka tab Stiker, tambah dari palet, geser langsung di preview, atur ukuran/putaran, Delete untuk menghapus.
@@ -53,7 +59,7 @@ Layout **Aku × 3 Meme** punya tiga kotak meme yang bisa diatur satu per satu.
 ## Cara menambah
 
 - **Meme baru**: tambah objek `{ "id", "emoji", "top", "bottom" }` di `shared/memes.json`.
-- **Tema warna**: tambah di array `THEMES` pada `src/lib/composer.js`.
+- **Template (warna + tulisan)**: tambah blok baru di `src/templates.config.js`. Tiap template membawa warna, pola, tulisan di bawah foto, set stiker, dan tanggal. Template buatan sendiri di aplikasi (tab Tema > Template saya) tersimpan di browser.
 - **Layout baru**: tambah di `LAYOUTS` dan `getSlots()` pada file yang sama.
 - **Ikon stiker baru**: tambah entri di `STICKER_ICONS` pada `src/lib/stickers.js` (SVG viewBox 0 0 64 64), lalu masukkan ke `STICKER_SETS`. Emoji hanya dipakai untuk meme.
 
