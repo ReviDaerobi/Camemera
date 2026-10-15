@@ -646,7 +646,7 @@ export default function Booth() {
                     </label>
                     <button className="chip bg-mint" onClick={saveCurrentTemplate}>Simpan pengaturan sekarang</button>
                   </div>
-                  <p className="mt-2 text-xs font-bold text-ink/55">Template saya tersimpan di browser ini. Untuk template permanen, tambahkan di src/templates.config.js.</p>
+                  <p className="mt-2 text-xs font-bold text-ink/55">Template sendiri hanya tersimpan di browser ini. Untuk template permanen, silahkan hubungi IG @revidaerobi</p>
                 </div>
               )}
 
