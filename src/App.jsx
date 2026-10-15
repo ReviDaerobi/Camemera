@@ -1,6 +1,6 @@
 import { Blob, Cloud, Flower, Heart, Ring, Sparkle, Squiggle, Star } from './components/Decor.jsx';
 import { useState } from 'react';
-import { Camera, Gift, Image as ImageIcon, Lock, Palette } from 'lucide-react';
+import { Camera, Copyright, Gift, Image as ImageIcon, Lock, Palette } from 'lucide-react';
 import Booth from './components/Booth.jsx';
 import StickerIcon from './components/StickerIcon.jsx';
 
@@ -259,6 +259,7 @@ function Footer() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="font-display text-3xl font-bold">Cekrek Booth</p>
         <p className="max-w-md font-semibold text-white/80">Photobooth online gratis. Foto diproses di browsermu dan tidak disimpan di server.</p>
+        <Copyright></Copyright> <p className="max-w-md font-semibold text-white/80 mr-16"> Revi Daerobi <br></br>(Asprak Maroon)</p>
         <a href="#top" className="btn bg-butter text-ink">Kembali ke atas</a>
       </div>
     </footer>
