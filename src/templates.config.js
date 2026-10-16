@@ -43,4 +43,19 @@ export const TEMPLATE_PRESETS = [
     bg1: '#FFF2A0', bg2: '#FFC6A5', accent: '#FFD84D', ink: '#4A3510',
     pattern: 'none', caption: 'Good vibes only', stickerSet: 'cute', showDate: false,
   },
+  {
+    id: 'maroon', name: 'Maroon',
+    bg1: '#9c0404', bg2: '#6d0000', accent: '#831008', ink: '#ebe7e7',
+    pattern: 'dots', caption: 'M For Maroon', stickerSet: 'cute', showDate: true,
+  },
+  {
+    id: 'workshop', name: 'Workshop',
+    bg1: '#0026ff', bg2: '#070b3b', accent: '#002dc0', ink: '#ebe7e7',
+    pattern: 'dots', caption: 'Workshop', stickerSet: 'fun', showDate: true,
+  },
+  {
+    id: 'himakom', name: 'Himakom',
+    bg1: '#b700ff', bg2: '#b700ff', accent: '#ae00ff', ink: '#fcfcfc',
+    pattern: 'dots', caption: 'Unguu? HIMAKOM!!', stickerSet: 'space', showDate: true,
+  },
 ];
