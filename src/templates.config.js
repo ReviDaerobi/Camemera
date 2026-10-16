@@ -55,7 +55,7 @@ export const TEMPLATE_PRESETS = [
   },
   {
     id: 'himakom', name: 'Himakom',
-    bg1: '#b700ff', bg2: '#b700ff', accent: '#ae00ff', ink: '#fcfcfc',
+    bg1: '#b700ff', bg2: '#b700ff', accent: '#ae00ff', ink: '#141111',
     pattern: 'dots', caption: 'Unguu? HIMAKOM!!', stickerSet: 'space', showDate: true,
   },
 ];
